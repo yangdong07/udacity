@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+  <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
+  <script src="js/prosper.js"></script>
+
+  <style>
+    circle.dimple-series-1 {
+      fill: red;
+    }
+
+    h2 {
+      text-align: center;
+    }
+  </style>
+
+  <script type="text/javascript">
+  </script>
+</head>
+
+<body>
+  <script type="text/javascript">
+    // 静态图
+    // var format = d3.time.format("%Y-%m-%d %H:%M:%S");
+    d3.csv("prosper.csv", drawLine);
+    // d3.csv("prosper.csv", function(d) {
+    //   return {
+    //     date: format.parse(d['LoanOriginationDate']),
+    //     LoanAmount: +d['LoanOriginalAmount'],
+    //   }
+    // }, drawLine);
+
+    // 动态图
+    // d3.csv("prosper.csv", drawMap);
+  </script>
+</body>
+
+</html>
