@@ -1,0 +1,943 @@
+Prosper贷款数据EDA
+========================================================
+
+### by 杨东
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+
+library(ggplot2)
+library(ggfortify)
+library(gridExtra)
+library(dplyr)
+library(scales)
+library(lubridate)
+library(RColorBrewer)
+
+library(forcats)
+library(GGally)
+
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+loan <- read.csv('prosperLoanData.csv')
+```
+
+# 简介
+[Prosper](https://www.prosper.com/) 是P2P借贷平台，每项贷款包括 借款人（Borrower）、出借人（Investor）和中介三个角色。
+用户若有贷款需求，可在Prosper网站上列出期望数额和可承受的最大利率。潜在贷方则为数额和利率展开竞价。Prosper 会收取中介[费用](https://www.prosper.com/help/contextual/fees/)。 
+
+待探索分析的数据集中包括113937项贷款，每项贷款有 81 个变量，包括贷款⾦额、借款利率（或利率）、当前贷款状态、借款⼈收⼊、借款⼈就业状态、借款⼈信⽤历史及最新⽀付信息。
+
+# 概览
+数据集大小，以及变量概览：
+```{r echo=FALSE}
+str(loan)
+```
+
+各变量意义详见[变量词典](https://s3.cn-north-1.amazonaws.com.cn/static-documents/nd002/Prosper+Loan+Data+-+Variable+Definitions.xlsx)
+
+这些变量主要描述了：
+
+1. 本次贷款的具体信息（年利率BorrowerAPR、利率BorrowerRate、收益率LenderYield、贷款总额 LoanOriginalAmount、贷款期限Term、贷款状态LoanStatus、贷款用途ListingCategory 等）
+
+2. 借贷者的具体信息（信用等级CreditGrade、ProsperScore、ProsperRating， 职业、收入范围、所在州等） 以及借贷者过往借贷、信用记录（债务收入比 DebtToIncomeRatio、借贷次数 TotalProsperLoans，准时还贷次数 OnTimeProsperPayments 等）
+
+3. 投资人信息（较少， 投资人数量 Investors、InvestmentFromFriendsCount、 InvestmentFromFriendsAmount等）
+
+
+# Univariate Plots Section
+
+## 本次贷款的具体信息
+
+### 本次借贷数额 LoanOriginalAmount
+
+```{r echo=FALSE}
+ggplot(aes(x = LoanOriginalAmount), data = loan) +
+  geom_histogram(binwidth = 1000) +
+  # stat_bin(aes(y=..count.., label=..count..), geom="text", vjust=-.5) +
+  scale_x_continuous(breaks = seq(0, 35000, by=5000))
+```
+```{r echo=FALSE}
+summary(loan$LoanOriginalAmount)
+```
+
+在 4000、10000、15000、20000、25000 这些值上有尖峰，说明借款者倾向于“凑整”借款。
+此外，一半用户借款数额在1000 到 6500 之间。
+
+
+### 贷款期限 Term
+```{r echo=FALSE}
+ggplot(aes(x = Term), data = loan) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  scale_x_continuous(breaks = c(12, 36, 60)) +
+  scale_y_continuous(limits = c(0, 100000), breaks = seq(0, 90000, by=10000))
+```
+```{r echo=FALSE}
+prop.table(table(loan$Term)) * 100
+```
+
+大部分贷款期限都是选择3年（36期），约占了 77%， 5年 60期占 21.5%， 很少一部分选择了 1年（1.4%）还款。
+
+### 贷款状态 LoanStatus
+```{r echo=FALSE}
+ggplot(aes(x = LoanStatus), data = loan) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  scale_y_continuous(limits = c(0, 60000)) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+```{r echo=FALSE}
+# LoanStatus 各种状态分布百分比
+prop.table(table(loan$LoanStatus)) * 100
+```
+
+其中完成（Completed）占33.4%， 正在进行中（Current）占 49.7%， 延期（Defaulted）占 4.4%， 坏账（Chargedoff）为 10.5%。 还有一小部分为过期。
+
+
+### 贷款用途 ListingCategory
+
+> The category of the listing that the borrower selected when posting their listing: 0 - Not Available, 1 - Debt Consolidation, 2 - Home Improvement, 3 - Business, 4 - Personal Loan, 5 - Student Use, 6 - Auto, 7- Other, 8 - Baby&Adoption, 9 - Boat, 10 - Cosmetic Procedure, 11 - Engagement Ring, 12 - Green Loans, 13 - Household Expenses, 14 - Large Purchases, 15 - Medical/Dental, 16 - Motorcycle, 17 - RV, 18 - Taxes, 19 - Vacation, 20 - Wedding Loans
+
+```{r echo=FALSE}
+
+# ListingCategory 是 Category类型的变量，具有离散值，而不能理解为连续值。
+loan$ListingCategory <- as.factor(loan$ListingCategory..numeric.)
+
+levels(loan$ListingCategory) <- 
+  c("Not Available", "Debt Consolidation", "Home Improvement", "Business", 
+    "Personal Loan", "Student Use", "Auto", "Other", 
+    "Baby&Adoption", "Boat", "Cosmetic Procedure", "Engagement Ring", 
+    "Green Loans", "Household Expenses", "Large Purchases", "Medical/Dental", 
+    "Motorcycle", "RV", "Taxes", "Vacation", "Wedding Loans")
+
+ggplot(aes(x = ListingCategory), data = loan) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r echo=FALSE}
+table(loan$ListingCategory)
+prop.table(table(loan$ListingCategory)) * 100
+```
+
+其中 Debt Consolidation 占了 51%， 大部分贷款的用途是为了债务合并。因为美国银行贷款的利率很高，Prosper提供的贷款利率相比银行贷款利率较低，所以通常做法是在Prosper平台借贷，还银行贷款。剩下一半的贷款目的就比较分散，主要有 Home Improvement（6.5%）、Business（6.3%）、Personal（2.1%）、Auto（车贷？）（2.3%）等等。
+
+
+### 利率 BorrowerRate 和 收益率LenderYield
+```{r echo=FALSE}
+
+# ServicingFeeRate = BorrowerRate - LenderYield
+loan$ServicingFeeRate <- round(loan$BorrowerRate - loan$LenderYield, 4)
+
+p1 <- ggplot(aes(x = BorrowerRate), data = loan) +
+  geom_histogram(binwidth = 0.01, fill = 'white', color = 'black') 
+
+p2 <- ggplot(aes(x = LenderYield), data = loan) +
+  geom_histogram(binwidth = 0.01, fill = 'white', color = 'black') 
+
+p3 <- ggplot(aes(x = ServicingFeeRate), data = loan) +
+  geom_histogram(binwidth = 0.005, fill = 'white', color = 'black') +
+  scale_x_continuous(breaks = seq(0, 0.06, by=0.01))
+  
+
+grid.arrange(p1, p2, p3, ncol = 1)
+
+```
+
+```{r echo=FALSE}
+table(loan$ServicingFeeRate)
+prop.table(table(loan$ServicingFeeRate)) * 100
+summary(loan$ServicingFeeRate)
+```
+
+BorrowerRate和LenderYield的分布是相同的，二者具有强相关性。实际上，根据 Prosper 的 [收费说明](https://www.prosper.com/help/contextual/fees/)，对每笔贷款，以年利率1% 收取服务费（Servicing Fee）。因此 借款人利率减去出借人收益率，即为Prosper收取的服务费率。 
+
+约有 89.3% 的贷款都采用了 1% 服务费率。也有其他的数值，比如有8次记录，服务费率高达5.5%（最大值）。
+
+
+### BorrwerAPR 和 Closing Fee
+
+根据 Prosper 的 [收费说明](https://www.prosper.com/help/contextual/fees/)， 借款人实际到手的金额，并不等于其借贷数额。Prosper会按一定比例扣除费用（ClosingFee）。
+
+Closing Fee与用户的Prosper评级和借贷期数有关（[rates and fees](https://www.prosper.com/loans/rates-and-fees/?refac=CANMB&refmc=6YRANV&refd=prosperblog)）。
+
+比如，评级为B的用户，贷款 \$5,000， 3年36期还款， 则 Closing Fee为贷款数额的 4.95%，即为 \$247.50。 所以用户贷款 \$5000，实际到手只有 \$4,752.50。 但是用户还贷仍然以 \$5,000 为本金计息， 利率为 17.68% （利率实际上也与用户信用评级和借贷期数有关）。 可以根据用户借款总额、利率和期数， 按照等额本息还款公式，计算每月应还金额（MonthlyLoanPayment）。 如果以 \$4,752.50 为本金计算年利率（BorrowerAPR），实际上是 21.37%。也就是说，用户借贷的实际年利率为 21.37%。 这个数值仍然比相同条件下银行贷款的利率低。
+
+数据集中并没有给出 Closing Fee的比例。这个比例值与Prosper评级和借贷期数有关。可以根据数据集中的 BorrowerRate、BorrwerAPR、Term 和 LoanOriginalAmount 计算出用户实际到手的金额，然后可以得到 Closing Fee的比例。
+
+```{r echo=FALSE}
+
+# 添加变量： LoanReceived： 借贷者实际到手的金额
+# ClosingFee： Prosper收取的费用
+# ClosingFeeRatio： Prosper收取的费用占借贷金额的比例
+loan <- loan %>% 
+  mutate(LoanReceived = 
+           round(MonthlyLoanPayment / 
+                   (BorrowerAPR / 12 * 
+                      (1 + 1 / ((1 + BorrowerAPR / 12) ^ Term - 1))),
+                 2),
+         ClosingFee = LoanOriginalAmount - LoanReceived,
+         ClosingFeeRatio = round(ClosingFee / LoanOriginalAmount, 4))
+
+ggplot(aes(x = ClosingFeeRatio), data = loan) +
+  geom_histogram(binwidth = 0.0001, fill = 'white', color = 'black') +
+  scale_x_continuous(limits = c(0, 0.1), breaks = seq(0, 0.1, by=0.01))
+
+# 列出ClosingFeeRatio 最常出现的值
+loan %>% 
+  group_by(ClosingFeeRatio) %>%
+  summarise(count = n()) %>% 
+  filter(count > 900) %>% 
+  select(ClosingFeeRatio, count)
+```
+
+ClosingFee的比例，按[Prosper官方说明](https://www.prosper.com/loans/rates-and-fees/?refac=CANMB&refmc=6YRANV&refd=prosperblog)， 有 0.50%、1.95%、2.95%、3.95%、4.95% 这几个数值，此外较明显的数值还有 1%、4.5%。
+
+
+## 借贷者的具体信息
+
+### 职业 Occupation
+
+```{r echo=FALSE}
+ggplot(aes(x = Occupation), data = loan) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r echo=FALSE}
+# 列出数量较多的职业
+loan %>% 
+  group_by(Occupation) %>%
+  summarise(count = n()) %>% 
+  filter(count > 3500) %>%
+  select(Occupation, count)
+```
+
+各行业人都有。多数人选择了Other，还有些没有填写（NA)。还有相当一部分人选择了Professional（13628）。其余较多的职业有 Computer Programmer码农、Executive、Teacher和Analyst、Administrative Assistant。
+
+
+### EmploymentStatus
+```{r echo=FALSE}
+ggplot(aes(x = EmploymentStatus), data = loan) +
+  geom_bar() + 
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  scale_y_continuous(limits = c(0, 80000)) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+多数人是 Employed 或 Full-time，应该是具备偿还能力的。
+
+### 收入范围 IncomeRange
+```{r echo=FALSE}
+
+# 对IncomeRange的levels进行排序
+loan$IncomeRange <- 
+  factor(loan$IncomeRange, 
+         levels = c("Not displayed", "Not employed", "$0", "$1-24,999", 
+                    "$25,000-49,999", "$50,000-74,999", "$75,000-99,999", "$100,000+"))
+
+ggplot(aes(x = IncomeRange), data = loan) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  scale_y_continuous(limits = c(0, 35000))
+```
+
+```{r echo=FALSE}
+prop.table(table(loan$IncomeRange)) * 100
+```
+
+借贷者收入范围主要集中在 \$25,000 到 \$100,000+ 这个范围，占了 85.6%。 有 6.8% 的人选择了不显示。
+
+
+### 借贷者所在州 BorrowerState
+```{r echo=FALSE}
+
+# States地图数据
+states.map <- map_data("state")
+# 统计各州的借贷记录数量
+loan.map <- loan %>% 
+  group_by(BorrowerState) %>%
+  summarise(count = n()) %>% 
+  select(BorrowerState, count) %>% 
+  mutate(state = tolower(state.name[match(BorrowerState, state.abb)]))
+
+# 用于标记州名缩写
+snames <- data.frame(abb=state.abb, long=state.center$x, lat=state.center$y)
+
+ggplot() +
+  geom_map(aes(map_id = state, fill = count), 
+           map = states.map, data = loan.map) +
+  scale_fill_continuous(low='thistle2', high='darkred', guide='colorbar') +
+  geom_text(aes(long, lat, label = snames$abb), data = snames, size = 2) +
+  expand_limits(x = states.map$long, y = states.map$lat)
+
+# 列出借贷记录数量前几的州
+loan.map %>% 
+  arrange(desc(count)) %>% 
+  head()
+```
+
+借贷者 加州人数最多（14717)， 接下来是德州（6842）、纽约（6729）、佛罗里达（6720）。
+其他地区并不活跃。
+
+
+### 借贷者信用评级
+说明借贷者信用等级的变量有 CreditGrade、ProsperRating (numeric)、ProsperRating (Alpha)、ProsperScore。
+
+```{r echo=FALSE}
+
+# 对CreditGrade的factor进行排序
+loan$CreditGrade <- 
+  factor(loan$CreditGrade, 
+         levels = c("NC", "HR", "E", "D", "C", "B", "A", "AA"))
+
+r1 <- ggplot(aes(x = CreditGrade), 
+             data = subset(loan, !is.na(loan$CreditGrade))) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_y_continuous(limits = c(0, 7000))
+  
+
+r2 <- ggplot(aes(x = ProsperRating..numeric.), 
+             data = subset(loan, !is.na(loan$ProsperRating..numeric.))) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_x_continuous(breaks = seq(1, 7, by = 1)) +
+  scale_y_continuous(limits = c(0, 20000))
+
+r3 <- ggplot(aes(x = ProsperScore), 
+             data = subset(loan, !is.na(loan$ProsperScore))) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_x_continuous(breaks = seq(1, 11)) +
+  scale_y_continuous(limits = c(0, 20000))
+
+# 对ProsperRating..Alpha. 按从低到高进行排序
+loan$ProsperRating..Alpha. <- 
+  factor(loan$ProsperRating..Alpha., 
+         levels = c("HR", "E", "D", "C", "B", "A", "AA"))
+
+r4 <- ggplot(aes(x = ProsperRating..Alpha.), 
+             data = subset(loan, !is.na(loan$ProsperRating..Alpha.))) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_y_continuous(limits = c(0, 20000))
+
+grid.arrange(r1, r2, r3, r4, ncol = 2, nrow = 2)
+
+```
+
+ProsperRating..numeric. 和 ProsperRating..Alpha. 的分布是完全一致的。 与ProsperScore的分布大致相同。
+CreditGrade 用于2009年以前，数据相对较少。
+
+
+### 负债收入比 DebtToIncomeRatio
+
+```{r echo=FALSE, warning=FALSE}
+
+ggplot(aes(x = DebtToIncomeRatio), data = loan) +
+  geom_histogram(aes(y=..density..),  
+                 binwidth = 0.02, colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") +
+  geom_vline(aes(xintercept=median(DebtToIncomeRatio, na.rm=T)), 
+             color="red", size=1) +
+  scale_x_continuous(limits = c(0, 1.0))
+
+summary(loan$DebtToIncomeRatio)
+
+# 小于临界值 40% 的用户百分比
+loan %>% 
+  filter(!is.na(DebtToIncomeRatio)) %>% 
+  mutate(GoodBalance = DebtToIncomeRatio <= 0.4) %>% 
+  group_by(GoodBalance) %>% 
+  summarise(count = n()) %>% 
+  mutate(percent = count / sum(count))
+```
+
+负债收入比能反映用户在一定时期财务状况的良好程度。临界值为40%。 有88.5%的用户小于这一数值。其余11.5%用户的财务情况较差（负债较重）。
+
+
+## 其他变量
+
+有几个日期时间变量：
+
+1. ListingCreationDate， 创建记录的时间
+
+2. DateCreditPulled， 获取Credit Profile 的时间（用于审核或竞价？）
+
+3. LoanOriginationDate， 贷款发放时间
+
+4. ClosedDate， 借贷结束时间（只适用于几个特定的LoanStatus）
+
+对这几个时间变量，我有几个感兴趣的问题：
+
+1. 每年借贷的数量趋势/每月借贷的数量
+
+2. 获取Credit Profile后多久开始发放贷款？
+
+3. 放贷后多久，结束债务（完成或延期或坏账）？
+
+### 每年借贷数量趋势
+```{r echo=FALSE}
+
+loan$ListingCreationDate <- as.Date(loan$ListingCreationDate)
+loan$LoanOriginationDate <- as.Date(loan$LoanOriginationDate)
+# loan$ListingCreationDate <- ymd_hms(loan$ListingCreationDate)
+# loan$ListingCreationDate.Year <- as.numeric(format(loan$ListingCreationDate, "%Y"))
+
+# table(loan$ListingCreationDate.Year)
+# ggplot(aes(x = ListingCreationDate.Year), data = loan) +
+#   geom_bar() +
+#   geom_text(stat='count', aes(label=..count..), vjust=-1) +
+#   scale_x_continuous(breaks = seq(2005, 2014, by=1)) +
+#   scale_y_continuous(limits = c(0, 40000))
+
+ggplot(aes(x = ListingCreationDate, 
+           fill = factor(year(ListingCreationDate))), data = loan) + 
+  geom_histogram(binwidth=30) +
+  scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 month")) +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1)) +
+  scale_fill_discrete(name = "Year")
+  
+```
+
+Prosper从2005年开始业务，随后发展迅速。但是到2008年次贷危机发生时，业务出现断层。2009年开始恢复业务，此后一直发展迅速，在2012年底出现低谷。
+
+### DateCreditPulled 和 LoanOriginationDate
+```{r echo=FALSE}
+
+loan$DateCreditPulled <- as.Date(loan$DateCreditPulled)
+loan$LoanOriginationDate <- as.Date(loan$LoanOriginationDate)
+
+# 贷款发放日与 CreditPulled日期之间相差的天数。
+loan$LoanOrigin_CreditPulled <- 
+  as.numeric(loan$LoanOriginationDate - loan$DateCreditPulled, units = 'days')
+
+ggplot(aes(x = LoanOrigin_CreditPulled), data = loan) + 
+  geom_bar() +
+  scale_x_continuous(limits = c(0, 50))
+
+summary(loan$LoanOrigin_CreditPulled)
+quantile(loan$LoanOrigin_CreditPulled, probs = c(0.75, 0.9, 0.99))
+
+# loan %>% 
+#   filter(LoanOrigin_CreditPulled == 1095)
+```
+
+从审核到放贷的时间 99% 在 39天以内。 75%在 16天以内。
+
+
+### LoanOriginationDate 和 ClosedDate
+```{r echo=FALSE}
+
+loan$ClosedDate <- as.Date(loan$ClosedDate)
+
+loan$Closed_LoanOrigin <- 
+  as.numeric(loan$ClosedDate - loan$LoanOriginationDate, units = 'days')
+
+ggplot(aes(x = Closed_LoanOrigin / (365.25 / 12)), data = loan) + 
+  geom_bar() +
+  scale_x_continuous(limits = c(0, 40), breaks = seq(0, 40, by=1)) +
+  xlab('Month')
+
+```
+
+峰值出现在 36月。这也与 Term大部分是36期保持一致。多数人选择按时还款，但是也有一些提前结束贷款。 按照Prosper的规则，提前还款不需要支付违约金。但若用户提前还款，出借人的收益就会变少。
+
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+数据集包括 113,937条数据， 81个变量。
+这些变量主要描述了：
+
+1. 本次贷款的具体信息（年利率BorrowerAPR、利率BorrowerRate、收益率LenderYield、贷款总额 LoanOriginalAmount、贷款期限Term、贷款状态LoanStatus、贷款用途ListingCategory 等）
+
+2. 借贷者的具体信息（信用等级CreditGrade、ProsperScore、ProsperRating， 职业、收入范围、所在州等） 以及借贷者过往借贷、信用记录（债务收入比 DebtToIncomeRatio、借贷次数 TotalProsperLoans，准时还贷次数 OnTimeProsperPayments 等）
+
+3. 投资人信息（较少， 投资人数量 Investors、InvestmentFromFriendsCount、 InvestmentFromFriendsAmount等）
+
+### What is/are the main feature(s) of interest in your dataset?
+
+数据集中主要的变量（特征） 为 借贷者的 ProsperRating。 利率和费率都是根据ProsperRating决定，此外，ProsperRating由借贷者的过往信用记录决定。
+其次为贷款具体信息，包括 利率BorrowerRate、贷款总额 LoanOriginalAmount、贷款期限Term， 这些特征构成了贷款大小的直接印象。
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+按照Prosper官方说明，一般信用评级越低的 利率和费率都越高。 也就是风险越大，收益越高。
+
+1. 借贷者信用评级如何影响其利率和费率？
+2. 借贷者收入范围、负债收入比等 如何影响其信用评级？
+
+### Did you create any new variables from existing variables in the dataset?
+
+在分析 BorrowerAPR和 BorrowerRate时，按照官方说明，创建了 ClosingFeeRatio 变量，用于分析 Prosper收取的ClosingFee。
+
+在分析日期时构建了两个变量 LoanOrigin_CreditPulled 和 Closed_LoanOrigin， 用于分析 审核到发放贷款的时间，以及 借贷持续时间与Term的比较。
+
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+很多地方都有异常值， LoanOriginalAmount 在某几个值上有尖峰， 说明了用户的倾向和习惯。 按照 ListingCreationDate 分析 每年的借贷业务，在2008年出现了断层，这是受到了当时经济环境的影响。 
+
+其他一些不明原因的异常，比如 放贷日期与审核日期相差1400多天，对这些异常值，在显示的时候，只做了截断处理。如果保留这些异常值，会使x轴变得过长，反而不利于观察大部分数据的分布情况。
+
+
+# Bivariate Plots Section
+
+主要考察 借贷者信用评级与其他变量之间的关系和分布。
+
+
+### CreditGrade、ProsperRating 与 ListingCreationDate
+
+```{r echo=FALSE}
+
+# 找出 ListingCreationDate 所有年份，与颜色一一对应，便于在多图中显示
+years <- levels(factor(year(loan$ListingCreationDate)))
+years.color <- brewer.pal(length(years), name = 'Set3')
+names(years.color) <- years
+
+r1 <- ggplot(aes(x = CreditGrade), 
+             data = subset(loan, !is.na(loan$CreditGrade))) +
+  geom_bar(aes(fill = factor(year(ListingCreationDate))), position = "stack") +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_y_continuous(limits = c(0, 7000)) +
+  scale_fill_manual(name = "Year", values = years.color)
+  
+r4 <- ggplot(aes(x = ProsperRating..Alpha.), 
+             data = subset(loan, !is.na(loan$ProsperRating..Alpha.))) +
+  geom_bar(aes(fill = factor(year(ListingCreationDate))), position = "stack") +
+  geom_text(stat='count', aes(label=..count..), vjust=-1, size=2) +
+  scale_y_continuous(limits = c(0, 20000)) +
+  scale_fill_manual(name = "Year", values = years.color)
+
+grid.arrange(r1, r4, ncol = 1)
+
+```
+
+从上图可以看出， 2009之前都采用 CreditGrade作为信用评级， 从2009年开始，主要使用 ProsperRating作为信用评级。
+数据以2009年之后为多。
+
+ProsperRating作为一个关键指标，一方面由用户过往行为和状态决定； 另一方面也影响其贷款利率，风险和收益。
+
+### LoanOriginalAmount vs. ProsperRating
+
+```{r echo=FALSE}
+
+# 后续主要围绕ProsperRating展开分析，这里我使用 2009年之后的数据子集，
+# 也就是ProsperRating..Alpha. 不为 NA 值的 数据，定义为 loan.pr
+loan.pr <- subset(loan, !is.na(loan$ProsperRating..Alpha.))
+ggplot(aes(x = ProsperRating..Alpha., y = LoanOriginalAmount), data = loan.pr) +
+  geom_boxplot()
+```
+
+信用等级越高者，更愿意借用更多贷款（因为利率较低）。
+
+### LoanOriginalAmount vs. BorrowerRate
+
+```{r echo=FALSE}
+ggplot(aes(x = BorrowerRate, y = LoanOriginalAmount), data = loan.pr) +
+  geom_point(alpha = .01)
+```
+
+在较低利率下，用户才有可能借取较大金额。
+
+
+### BorrowerRate vs. ProsperRating
+
+```{r echo=FALSE}
+
+ggplot(aes(x = ProsperRating..Alpha., y = BorrowerRate), data = loan.pr) +
+  geom_boxplot()
+```
+
+信用等级越高，利率越低。对借贷者来说，这是一种信用奖励。对投资者来说，借贷者信用等级越高，意味风险越低，收益相对来说也较低；借贷者信用等级越低，就有较高概率出现拖欠、坏账，风险较大，但收益相对来说也较高。
+
+
+### BorrowerRate vs. Term
+```{r echo=FALSE}
+ggplot(aes(x = factor(Term), y = BorrowerRate), data = loan) +
+  geom_boxplot()
+
+```
+
+
+### ClosingFeeRatio vs. ProsperRating 
+```{r echo=FALSE}
+ggplot(aes(x = ProsperRating..Alpha., y = ClosingFeeRatio), data = loan.pr) +
+  geom_jitter(alpha = .05, size = 1) +
+  scale_y_continuous(limits = c(0, 0.5))
+
+```
+
+在信用等级 A和AA可以看出，费率较低。其他等级情况相近。
+
+
+### ProsperRating vs. IncomeRange
+```{r echo=FALSE}
+ggplot(aes(x = IncomeRange), data = loan.pr) +
+  geom_bar(aes(fill = fct_rev(ProsperRating..Alpha.)), position = "fill") +
+  scale_fill_brewer(palette = "Blues") + 
+  geom_line(aes(y = ProsperRating..numeric. / 7, group = 1), 
+            stat = "summary", fun.y = mean, linetype = 3) +
+  geom_point(aes(y = ProsperRating..numeric. / 7), 
+             stat = "summary", fun.y = mean, shape = 23) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  ylab("percent") +
+  scale_y_continuous(
+    sec.axis = sec_axis(~ . * 7, name = "Avg. ProsperRating", 
+                        breaks = seq(0, 7, by = 1))) +
+  guides(fill=guide_legend(title="ProsperRating"))
+
+```
+
+无论哪个收入范围，都包括所有信用等级。 收入越多，信用等级高的比重也会增加。一定程度上反映出高收入人群的信用等级相对较高。 
+
+
+### ProsperRating vs. DebtToIncomeRatio
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(aes(x = DebtToIncomeRatio), data = loan.pr) +
+  geom_density(aes(color = fct_rev(ProsperRating..Alpha.))) +
+  scale_color_brewer(palette = "Blues") +
+  scale_x_log10(limits = c(0.01, 10), 
+                breaks = c(0.01, 0.03, 0.1, 0.3, 1, 3, 10)) +
+  guides(color=guide_legend(title="ProsperRating"))
+
+# ggplot(aes(x = DebtToIncomeRatio,), data = loan.pr) +
+#   geom_histogram(aes(fill = fct_rev(ProsperRating..Alpha.)), binwidth = 0.01) +
+#   scale_x_log10(limits = c(0.01, 10), 
+#                 breaks = c(0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4)) +
+#   scale_x_continuous(limits = c(0, 1.0)) +
+#   guides(color=guide_legend(title="ProsperRating"))
+
+# ggplot(aes(x = ProsperRating..Alpha., y = DebtToIncomeRatio), data = loan.pr) +
+#   geom_boxplot()
+```
+
+信用等级高的，债务收入比分布区域偏左（分布在较低值）。
+
+
+### LoanStatus vs. PropserRating
+
+```{r echo=FALSE}
+ggplot(aes(x = LoanStatus), data = loan.pr) +
+  geom_bar(aes(fill = fct_rev(ProsperRating..Alpha.)), position = "fill") +
+  scale_fill_brewer(palette = "Blues") + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  guides(fill=guide_legend(title="ProsperRating"))
+```
+
+LoanStatus 为Completed 、Current 个FinalPaymentInProgress 的贷款中， AA、A、B等级的用户所占比例较高。 
+Defaulted、Chargedoff、Past Due这些状态的贷款中， AA、A、B等级的用户所占比例较低，但也不是没有。
+
+
+### ProsperRating vs. BorrowerState
+
+带点地域性质的分析。哪个州的Prosper借贷者的平均信用比较低？
+```{r echo=FALSE}
+# 统计计算各州prosperRating 的平均值
+loan.map.pr <- loan.pr %>% 
+  group_by(BorrowerState) %>%
+  summarise(avg.rating = mean(ProsperRating..numeric.)) %>% 
+  select(BorrowerState, avg.rating) %>% 
+  mutate(state = tolower(state.name[match(BorrowerState, state.abb)]))
+
+ggplot() +
+  geom_map(aes(map_id = state, fill = avg.rating), 
+           map = states.map, data = loan.map.pr) +
+  scale_fill_continuous(low='red', high='green', guide='colorbar') +
+  geom_text(aes(long, lat, label = snames$abb), data = snames, size = 2) +
+  expand_limits(x = states.map$long, y = states.map$lat)
+
+loan.map.pr %>% 
+  arrange(avg.rating) %>% 
+  head()
+
+```
+
+Arkansas、Alabama、South Dakota、 Mississippi、Idaho的借贷者平均信用等级较低。
+
+
+### Investors vs. LoanOriginalAmount
+
+评估一下投资人数量与借贷总额之间的关系。
+
+```{r echo=FALSE}
+ggplot(aes(x = LoanOriginalAmount, y = Investors), 
+       data = subset(loan.pr, loan.pr$Investors > 1)) +
+  geom_jitter(alpha = .05) +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_smooth(method = 'lm')
+```
+
+这里用投资人数超过1 的子集进行分析，借贷金额越大，相应投资人越多。投资人数与借贷金额之间具有较强相关性。
+
+
+### MonthlyLoanPayment vs. StatedMonthlyIncome
+
+```{r echo=FALSE}
+ggplot(aes(x = StatedMonthlyIncome, y = MonthlyLoanPayment), 
+       data = subset(loan, loan$StatedMonthlyIncome > 10 & 
+                       loan$MonthlyLoanPayment > 0 )) +
+  geom_point(alpha = .1, size = .5) +
+  scale_x_log10() + 
+  scale_y_log10() +
+  geom_smooth(method = 'lm')
+
+```
+
+每月收入越高者，能承受每月还款数额也较高。
+
+# ProsperRating vs. ... (Scatterplot Matrix)
+```{r fig.width = 15, fig.height = 15}
+
+# 分析可能与ProsperRating 相关的变量
+loan.subset <- loan.pr %>% 
+  dplyr::select(ProsperRating..numeric., InquiriesLast6Months, 
+                CurrentDelinquencies, DelinquenciesLast7Years, 
+                BankcardUtilization, TradesNeverDelinquent..percentage., 
+                IncomeRange, DebtToIncomeRatio)
+ggpairs(loan.subset[sample.int(nrow(loan.subset), 1000), ])
+```
+
+
+将可能影响 ProsperRating的 变量列出来一些，用Scatterplot Matrix 表示。观察第一行 ProsperRating与其他变量的相关系数，都存在一定相关性，但相关系数都不大。
+
+其中DelinquenciesLast7Years 与变量 TradesNeverDelinquent..percentage. 的相关系数较大，为-0.533。
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+#### BorrowerRate vs. ProsperRating.  
+二者具有明显相关性。因为在Prosper， BorrowerRate就是根据用户的ProsperRating 以及其他一些变量（Term等）决定的。
+
+#### ProsperRating vs. IncomeRange/DebtToIncomeRatio...
+
+ProsperRating与用户一些属性特征具有一定的相关性，可以观察出来，但是并不特别明显。需要进一步综合分析。
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+MonthlyLoanPayment vs. StatedMonthlyIncome
+
+每月收入越高者，能承受每月还款数额也较高。
+
+### What was the strongest relationship you found?
+
+BorrowerRate vs. ProsperRating
+
+
+# Multivariate Plots Section
+
+
+### ProsperRating Linear Model
+
+在Bivariate分析中，已经分析了ProsperRating与一些变量之间的关系，可不可以拟合出一个线性模型，通过用户的这些行为变量，来预测或判断用户的信用评级？
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+pr.model <- lm(ProsperRating..numeric. ~ IncomeRange + DebtToIncomeRatio + 
+                 InquiriesLast6Months + CurrentDelinquencies + 
+                 DelinquenciesLast7Years + TradesNeverDelinquent..percentage. + 
+                 BankcardUtilization + AvailableBankcardCredit - 1, 
+               data = loan.pr)
+
+pr.model
+
+summary(pr.model)
+
+autoplot(pr.model)
+```
+
+建立一个信用评级的线性模型，可以根据用户的一些过往信息，对用户进行评级。用户的信用评级决定借贷利率、风险和收益，是一个非常关键的指标。
+
+Prosper、银行都会有自己的评级模型，这里我将大部分描述用户的变量都放到线性模型中，得到一个简单的评估模型， R-square值可到 0.9138。
+
+### BorrowerRate vs. ProsperRating, by Term
+
+```{r echo=FALSE}
+
+ggplot(aes(x = ProsperRating..numeric., y = BorrowerRate), data = loan.pr) +
+  geom_jitter(aes(color = factor(Term)), alpha = .1, size = .5) +
+  geom_smooth(aes(color = factor(Term)), method = 'lm') +
+  scale_x_continuous(breaks = seq(1, 7, by=1)) +
+  guides(color=guide_legend(title="Term"))
+```
+
+BorrowerRate 主要受到 ProsperRating和Term的影响： 信用等级越高，利率越低；在信用等级相同的条件下，期数越长，利率越高。
+
+
+### Investors vs. LoanOrignAmount, by ProsperRating
+
+
+```{r echo=FALSE}
+ggplot(aes(x = LoanOriginalAmount, y = Investors, color = ProsperRating..Alpha.), 
+       data = subset(loan.pr, loan.pr$Investors > 1)) +
+  geom_jitter(alpha = .2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'ProsperRating', reverse = T,
+                                          override.aes = list(alpha = 1, size = 4))) +
+  geom_smooth(method = 'lm') +
+  ggtitle("Investors vs. LoanOriginalAmount, by ProsperRating") +
+  theme(plot.title = element_text(hjust = 0.5))
+  
+```
+
+投资人数量与 借贷金额大小成正比关系。 在加入ProsperRating变量之后，可以发现多数投资人倾向于选择借贷给信用等级高的人。
+
+
+### MonthlyLoanPayment vs. StatedMonthlyIncome, by ProsperRating
+
+```{r echo=FALSE}
+ggplot(aes(x = StatedMonthlyIncome, y = MonthlyLoanPayment), 
+       data = subset(loan.pr, loan.pr$StatedMonthlyIncome > 10 & 
+                       loan.pr$MonthlyLoanPayment > 0 )) +
+  geom_jitter(aes(color = ProsperRating..Alpha.), alpha = .5) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'ProsperRating', reverse = T,
+                                          override.aes = list(alpha = 1, size = 4))) 
+
+```
+
+信用等级高的人具有较高的偿还能力。
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+1. 通过观察 ProsperRating 与描述用户行为的变量的  Scatterplot Matrix，可以发现ProsperRating与这些变量之间存在一定相关性。使用这些变量构建预测 ProsperRating的线性模型， R^2 值可以达到 0.9138。
+
+2. BorrowerRate 主要受到 ProsperRating和Term的影响： 信用等级越高，利率越低；在信用等级相同的条件下，期数越长，利率越高。
+
+3. 借贷金额越大，投资人越多。在借贷金额相同的条件下，信用等级越高，投资人相对来说也越多。 
+
+### Were there any interesting or surprising interactions between features?
+
+MonthlyLoanPayment vs. StatedMonthlyIncome, by ProsperRating
+在加入ProsperRating变量之前，可以观察到，较高月收入者，可以承受的月账单也越高，符合直觉。 加入ProsperRating变量之后，可以发现，信用等级较高者在每月偿还金额上选择更为灵活（跨度较大），而信用等级较低的人的选择范围就比较小。
+
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+创建了关于ProsperRating的线性模型，将可能影响到用户信用等级的变量都加入到线性模型中进行拟合。 最终得到的模型 R-squared值为 0.9138。
+
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+ggplot(aes(x = IncomeRange), data = loan.pr) +
+  geom_bar(aes(fill = fct_rev(ProsperRating..Alpha.)), position = "fill") +
+  scale_fill_brewer(palette = "Blues") + 
+  geom_line(aes(y = ProsperRating..numeric. / 7, group = 1), 
+            stat = "summary", fun.y = mean, linetype = 3) +
+  geom_point(aes(y = ProsperRating..numeric. / 7), 
+             stat = "summary", fun.y = mean, shape = 23) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+  ylab("percent") +
+  scale_y_continuous(sec.axis = sec_axis(~ . * 7, name = "Avg. ProsperRating", 
+                                         breaks = seq(0, 7, by = 1))) +
+  guides(fill=guide_legend(title="ProsperRating")) +
+  ggtitle("ProsperRating Distribution & Avg. ProsperRating vs. IncomeRange") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12))
+
+```
+
+### Description One
+
+影响 ProsperRating 的feature有很多，但从这张图可以看出不同收入范围情况下ProsperRating的分布情况。可以明显看出，收入范围越高的用户，高信用等级人群占比也较多。平均信用等级分也较高。
+
+如果将 "Not employed" 和 "$0" 的收入范围level顺序调整一下，可以观察出平均信用等级与收入范围之间具有很强的相关性。
+
+根据IncomeRange、DebtToIncomeRatio等等变量，拟合 ProsperRating的线性模型。可以得到一个较好的线性模型，其R^2 值为 0.9138。
+
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+ggplot(aes(x = ProsperRating..numeric., y = BorrowerRate), data = loan.pr) +
+  geom_jitter(aes(color = factor(Term)), alpha = .1, size = .5) +
+  geom_smooth(aes(color = factor(Term)), method = 'lm') +
+  scale_x_continuous(breaks = seq(1, 7, by=1)) +
+  guides(color=guide_legend(title="Term")) +
+  ggtitle("BorrowerRate vs. ProsperRating, by Loan Term") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description Two
+
+BorrowerRate 也是一个很关键的指标，它决定 用户利率、投资人收益率。
+
+实际上，BorrowerRate 与ProsperRating 和借贷期数直接相关。信用等级越高，利率越低；在信用等级相同的条件下，期数越长，利率越高。
+
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+ggplot(aes(x = LoanOriginalAmount, y = Investors, color = ProsperRating..Alpha.), 
+       data = subset(loan.pr, loan.pr$Investors > 1)) +
+  geom_jitter(alpha = .2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'ProsperRating', reverse = T,
+                                          override.aes = list(alpha = 1, size = 4))) +
+  geom_smooth(method = 'lm') +
+  ggtitle("Investors vs. LoanOriginalAmount, by ProsperRating") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Description Three
+
+这幅图一定程度上反映出投资人的倾向。大金额贷款会分担给较多的投资人；在贷款金额相同的情况下，投资人更倾向于借贷给信用等级高的借贷者，这部分借贷者的利率较低，风险较低，投资人的收益也较低。可以看出，多数投资人还是趋向低风险投资的。
+
+------
+
+# Reflection
+
+对Prosper借贷数据的分析的困难程度超出了我的预期，花费时间也远远超出了预期，在做单变量分析的时候还兴致满满，有很多希望探索的问题；但做到双变量、多变量分析的时候，感觉得困惑就比较多。远比想象中困难。
+
+首先是对各种数据（feature）意义的确定。我并非金融专业，而且也没玩过P2P贷款，很多变量我到现在也不清楚具体是怎么解释的，比如OpenRevolvingAccounts， TotalInquiries。Inquiries是干什么的也不知道。在做单变量分析时，我仅对了解其意义的变量进行了统计分析，观察出一些比较符合直觉的现象。 此外，我对 借贷者利率 BorrowerRate和 借贷者实际年利率的BorrowerAPR 二者之间的关系产生了极大的兴趣。 二者都是年利率，为什么会不一样？ 通过查找Prosper的资料，我了解到 Prosper会从实际借贷金额中扣除一定比例的费用，借贷者实际到手的金额并不等于其借贷金额。BorrowerRate是按照借贷金额计算的利率，BorrowerAPR是按照借贷者实际到手的金额计算的等效利率。这个过程中，我还顺便了解了蚂蚁花呗和京东白条所谓的手续费和利率，与实际的等效APR之间的关系，算是恶补了一些金融方面的知识。 根据 LoanOriginalAmount、BorrowerRate和Term，按照等额本息计算公式，可以计算出每月需要还款金额，与MonthlyLoanPayment是一致的。 根据MonthlyPayment以及 BorrowerAPR，可以计算出借贷者实际到手的金额，然后就可以计算出 Prosper从中扣除的费用（ClosingFee），除以 LoanOriginalAmount 就是所谓的 费率。这个费率根据 ProsperRating 确定的。
+
+Prosper不仅按照一定比例从借贷者收取费用（ClosingFee），还按照年利率 1%，收取服务费（ServicingFee）。投资人实际的收益率（LenderYield）实际上等于 BorrowerRate 减去1%。通过计算 BorrowerRate和LenderYield的差可以明显看出。
+
+从日期角度去观察数据也很有意思，可以发现这些数据在2008年末，2009年初出现了断层。这是与2008年的金融危机有关么？自从2009年之后，Prosper就改变了信用评级标准，不再使用CreditGrade，而是使用自己的信用等级制度（ProsperRating）。
+
+DateCreditPulled这个日期有什么意义？ 为什么很多feature的定义都以这个日期为准？我大概猜测这是用于审核借贷者信用资质的一个日期。那么从审核到放贷（LoanOriginationDate）日期，有什么规律？通过做统计，可以看出75%的贷款在16天之内就发放了。
+
+因为有 BorrowerState这个feature，还可以做地域性质的分析，比如统计哪个州的借贷者最多？ 哪个州的平均信用等级最高？哪个州最低？
+
+通过对单变量的探索分析，最终确定用户的关键指标是 ProsperRating，它决定贷款利率，Prosper的费率，当然也会影响投资人的选择。同时，ProsperRating由用户的过往行为决定，收入范围、债务收入比，以及有没有拖欠行为，等等。在做双变量分析的时候，主要围绕ProsperRating展开，观察ProsperRating是如何影响其他变量，以及受到其他变量影响的。可不可以拟合一个公式，可以根据用户的这些行为变量，来计算出其ProsperRating？ 幸运的是，通过 ~~__随手__~~ 仔细的选择一些变量，拟合出一个较好的线性模型，R^2值为0.9138。
+
+在对Prosper Loan的数据的探索性分析过程中，我有以下一些感悟：
+
+1. 想象力很重要，问题很重要。带着问题去探索，很容易得到一些有意义，有价值的信息。即使找不到信息，本身也说明了一个信息（物理实验中的零结果并不等于没有结果）
+
+2. 数据分析的基本功很重要，表达能力很重要。有很多问题，浮现在脑海中，但是却不知道如何去表达，如何用图表去说明解释，这是个比较痛苦的事情。此外，在数据分析中，因果顺序也很重要。
+
+对未来工作的一些提议： 不要怕出错，多尝试，对数据保持敏感，从混乱中找到秩序。大胆假设，小心求证。R语言是一个很厉害的用来分析数据的工具，还需要多学习。想象力决定了能到达的地方；专业技能和执行力决定了能否到达。
+
+
+
