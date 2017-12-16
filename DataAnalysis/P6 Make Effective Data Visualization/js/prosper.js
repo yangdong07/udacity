@@ -49,7 +49,7 @@ function drawLine(data) {
   x.dateParseFormat = "%Y-%m";
   x.tickFormat = "%Y-%m";
   x.timeInterval = 1;
-  x.title = "Loan Origination Date (Mounth)"
+  x.title = "Loan Origination Date (Month)"
   x.fontSize = 15;
   var y = myChart.addMeasureAxis("y", "LoanAmount");
   y.fontSize = 15;
@@ -100,3 +100,9 @@ function drawLine(data) {
   // myChart.draw();
 
 };
+
+
+function drawMap(data) {
+
+
+}
