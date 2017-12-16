@@ -11,6 +11,7 @@ with open("prosperLoanData.csv", 'rb') as origin:
 headers = [
     "LoanOriginalAmount",
     "LoanOriginationDate",
+    "ListingCreationDate"
 ]
 
 with open("prosper.csv", 'wb') as simple:

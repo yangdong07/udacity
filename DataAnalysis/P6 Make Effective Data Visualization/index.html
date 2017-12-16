@@ -16,6 +16,10 @@
     h2 {
       text-align: center;
     }
+
+    text.dimple-title {
+      font-size: 20px!;
+    }
   </style>
 
   <script type="text/javascript">
@@ -25,14 +29,7 @@
 <body>
   <script type="text/javascript">
     // 静态图
-    // var format = d3.time.format("%Y-%m-%d %H:%M:%S");
     d3.csv("prosper.csv", drawLine);
-    // d3.csv("prosper.csv", function(d) {
-    //   return {
-    //     date: format.parse(d['LoanOriginationDate']),
-    //     LoanAmount: +d['LoanOriginalAmount'],
-    //   }
-    // }, drawLine);
 
     // 动态图
     // d3.csv("prosper.csv", drawMap);
