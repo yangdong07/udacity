@@ -15,3 +15,9 @@ Prosper是一个P2P借贷平台。这个可视化项目展示了
 # 反馈
 
 1.
+
+
+
+# 资源
+
+美国地图 [http://bl.ocks.org/NPashaP/a74faf20b492ad377312]

@@ -100,9 +100,3 @@ function drawLine(data) {
   // myChart.draw();
 
 };
-
-
-function drawMap(data) {
-
-
-}

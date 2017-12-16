@@ -3,36 +3,26 @@
 
 <head>
   <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="css/line.css">
+  <link rel="stylesheet" type="text/css" href="css/map.css">
   <script src="https://d3js.org/d3.v3.min.js"></script>
-  <!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
   <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
-  <script src="js/prosper.js"></script>
-
-  <style>
-    circle.dimple-series-1 {
-      fill: red;
-    }
-
-    h2 {
-      text-align: center;
-    }
-
-    text.dimple-title {
-      font-size: 20px!;
-    }
-  </style>
-
-  <script type="text/javascript">
-  </script>
+  <script src="js/line.js"></script>
+  <script src="js/uStates.js"></script>
+  <script src="js/map.js"></script>
 </head>
 
 <body>
+  <div id="tooltip"></div><!-- div to hold tooltip. -->
+  <svg width="960" height="600" id="statesvg"></svg> <!-- svg to hold the map. -->
   <script type="text/javascript">
     // 静态图
-    d3.csv("prosper.csv", drawLine);
+    // d3.csv("prosper.csv", drawLine);
 
     // 动态图
-    // d3.csv("prosper.csv", drawMap);
+    
+    d3.csv("prosper.csv", drawMap);
+
   </script>
 </body>
 
