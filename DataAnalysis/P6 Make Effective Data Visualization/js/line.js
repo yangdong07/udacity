@@ -4,7 +4,7 @@ function drawLine(data) {
 
   // 数据预处理
   var format = d3.time.format("%Y-%m-%d %H:%M:%S");
-  var yearmonth = d3.time.format("%Y-%m");
+  // var yearmonth = d3.time.format("%Y-%m");
   // data.forEach(function(d) {
   //   d.date = yearmonth(format.parse(d.LoanOriginationDate));
   //   d.LoanAmount = +d.LoanOriginalAmount;
@@ -12,11 +12,11 @@ function drawLine(data) {
   // });
 
   var agg_data = data.reduce(function(ad, d) {
-    var date = yearmonth(format.parse(d.LoanOriginationDate));
-    if (date in ad) {
-      ad[date] += (+d.LoanOriginalAmount);
+    var year = format.parse(d.LoanOriginationDate).getUTCFullYear();
+    if (year in ad) {
+      ad[year] += (+d.LoanOriginalAmount);
     } else {
-      ad[date] = (+d.LoanOriginalAmount);
+      ad[year] = (+d.LoanOriginalAmount);
     }
     return ad;
   }, {})
@@ -46,9 +46,9 @@ function drawLine(data) {
   myChart.setMargins("10%", "10%", "10%", "20%");
 
   var x = myChart.addTimeAxis("x", "date");
-  x.dateParseFormat = "%Y-%m";
-  x.tickFormat = "%Y-%m";
-  x.timeInterval = 1;
+  x.dateParseFormat = "%Y";
+  x.tickFormat = "%Y";
+  // x.timeInterval = 1;
   x.title = "Loan Origination Date (Month)"
   x.fontSize = 15;
   var y = myChart.addMeasureAxis("y", "LoanAmount");

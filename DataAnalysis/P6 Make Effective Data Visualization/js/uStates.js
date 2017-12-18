@@ -55,7 +55,7 @@
 	];
 	var uStates={};
 
-	uStates.draw = function(id, data, toolTip){
+	uStates.draw = function(id, data, color_scale, toolTip){
 		function mouseOver(d){
 			d3.select("#tooltip").transition().duration(200).style("opacity", .9);
 
@@ -72,7 +72,7 @@
 			.data(uStatePaths).enter().append("path").attr("class","state").attr("d",function(d){ return d.d;})
 			.style("fill",function(d){
 				if (d.id in data) {
-					return data[d.id].color;
+					return color_scale(data[d.id].amount);
 				} else {
 					return "#FFFFFF";
 				}})

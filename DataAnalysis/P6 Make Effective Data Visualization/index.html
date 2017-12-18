@@ -14,13 +14,16 @@
 
 <body>
   <div id="tooltip"></div><!-- div to hold tooltip. -->
-  <svg width="960" height="600" id="statesvg"></svg> <!-- svg to hold the map. -->
+  <div id="container">
+    <svg id="main-svg" width="960" height="600"></svg>
+    <svg id="legend-svg"></svg>
+</div>
   <script type="text/javascript">
     // 静态图
     // d3.csv("prosper.csv", drawLine);
 
     // 动态图
-    
+
     d3.csv("prosper.csv", drawMap);
 
   </script>
