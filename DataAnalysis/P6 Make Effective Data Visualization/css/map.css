@@ -8,8 +8,35 @@
   fill-opacity: 0.5;
 }
 
-#legend-svg {
+
+/* #legend-svg {
   vertical-align: top;
+} */
+
+#container {
+  margin-left: 150px;
+}
+
+#container.h2 {
+  max-width: 960px;
+}
+
+div.years_buttons {
+  position: fixed;
+  top: 200px;
+  left: 70px;
+}
+
+div.years_buttons div {
+  background-color: rgb(251, 201, 127);
+  padding: 3px;
+  margin: 7px;
+}
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
 }
 
 #tooltip {
