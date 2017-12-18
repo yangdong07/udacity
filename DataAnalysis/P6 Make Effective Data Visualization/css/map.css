@@ -44,7 +44,7 @@ div.years_buttons button{
 
 #tooltip {
   position: absolute;
-  text-align: center;
+  /* text-align: center; */
   padding: 20px;
   margin: 10px;
   font: 12px sans-serif;
@@ -83,6 +83,6 @@ div.years_buttons button{
   width: 50px;
 }
 
-#tooltip tr td:nth-child(2) {
+/* #tooltip tr td:nth-child(2) {
   text-align: center;
-}
+} */

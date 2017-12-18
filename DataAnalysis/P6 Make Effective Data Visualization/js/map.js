@@ -100,7 +100,7 @@ function drawMap(data) {
       return "<h4>" + n + "</h4><table>" +
         "<tr><td>Amount</td><td>$" + d.amount.toFixed(2) + "m</td></tr>" +
         "<tr><td>Count</td><td>" + (d.count) + "</td></tr>" +
-        "<tr><td>Average</td><td>" + (d.avg) + "</td></tr>" +
+        "<tr><td>Average</td><td>$" + (d.avg) + "</td></tr>" +
         "</table>";
     } else {
       return "<h4>" + n + "</h4><table>";
@@ -111,7 +111,7 @@ function drawMap(data) {
   // uStates.draw("#main-svg", statisticData['2013'], color_scale, tooltipHtml);
 
   function update(year) {
-    d3.select("#title").text("Loan Amount in " + year);
+    d3.select("#title").text("Loan Amount Distribution in " + year);
     uStates.draw("#main-svg", statisticData[year], color_scale, tooltipHtml);
     d3.select(self.frameElement).style("height", "600px");
   }
@@ -119,7 +119,7 @@ function drawMap(data) {
   // debugger;
 
   update(2005);
-  
+
   var years = d3.range(2005, 2015);
   var year_idx = 1;
   var year_interval = setInterval(function() {
