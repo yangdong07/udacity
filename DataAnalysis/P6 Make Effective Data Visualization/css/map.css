@@ -25,12 +25,15 @@ div.years_buttons {
   position: fixed;
   top: 200px;
   left: 70px;
+  width: 40px;
 }
 
-div.years_buttons div {
+div.years_buttons button{
   background-color: rgb(251, 201, 127);
   padding: 3px;
   margin: 7px;
+  width: 40px;
+  font-size: 12px;
 }
 
 .axis path, .axis line {

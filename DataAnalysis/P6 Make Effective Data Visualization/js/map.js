@@ -54,7 +54,6 @@ function drawMap(data) {
         count: v.values.count,
         amount: v.values.LoanAmount / 1e6,
         avg: Math.round(v.values.LoanAmount / count),
-        // color: d3.interpolate("#ffffcc", "#800026")(count / 10000)
       };
       amounts.push(v.values.LoanAmount / 1e6);
     });
@@ -112,15 +111,17 @@ function drawMap(data) {
   // uStates.draw("#main-svg", statisticData['2013'], color_scale, tooltipHtml);
 
   function update(year) {
-    uStates.draw("#main-svg", statisticData[year], color_scale, tooltipHtml);
     d3.select("#title").text("Loan Amount in " + year);
+    uStates.draw("#main-svg", statisticData[year], color_scale, tooltipHtml);
     d3.select(self.frameElement).style("height", "600px");
   }
 
   // debugger;
 
+  update(2005);
+  
   var years = d3.range(2005, 2015);
-  var year_idx = 0;
+  var year_idx = 1;
   var year_interval = setInterval(function() {
     update(years[year_idx]);
     year_idx++;
@@ -130,17 +131,17 @@ function drawMap(data) {
       var buttons = d3.select("body")
         .append("div")
         .attr("class", "years_buttons")
-        .selectAll("div")
+        .selectAll("button")
         .data(years)
         .enter()
-        .append("div")
+        .append("button")
         .text(function(d) {
           return d;
         });
 
       buttons.on("click", function(d) {
         d3.select(".years_buttons")
-          .selectAll("div")
+          .selectAll("button")
           .transition()
           .duration(500)
           .style("color", "black")
