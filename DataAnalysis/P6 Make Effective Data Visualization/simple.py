@@ -12,7 +12,6 @@ headers = [
     "LoanOriginalAmount",
     "LoanOriginationDate",
     "BorrowerState",
-    # "ListingCreationDate"
 ]
 
 with open("prosper.csv", 'wb') as simple:

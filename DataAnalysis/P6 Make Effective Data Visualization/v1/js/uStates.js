@@ -55,19 +55,8 @@
 	];
 	var uStates = {};
 
-	uStates.draw = function(id, data, color_scale, toolTip) {
-	  function mouseOver(d) {
-	    d3.select("#tooltip").transition().duration(200).style("opacity", .9);
-
-	    d3.select("#tooltip").html(toolTip(d.n, data[d.id]))
-	      .style("left", (d3.event.pageX) + "px")
-	      .style("top", (d3.event.pageY - 28) + "px");
-	  }
-
-	  function mouseOut() {
-	    d3.select("#tooltip").transition().duration(500).style("opacity", 0);
-	  }
-
+	uStates.draw = function(id, data, color_scale) {
+		// 绘制地图，这里绑定的数据是地图path数据
 	  d3.select(id).selectAll(".state")
 	    .data(uStatePaths).enter().append("path").attr("class", "state").attr("d", function(d) {
 	      return d.d;
@@ -80,6 +69,7 @@
 	      }
 	    });
 
+		// 地图染色
 	  d3.select(id).selectAll(".state")
 	    .transition().duration(500)
 	    .style("fill", function(d) {
@@ -89,9 +79,6 @@
 	        return "white";
 	      }
 	    });
-
-	  d3.select(id).selectAll(".state")
-	    .on("mouseover", mouseOver).on("mouseout", mouseOut);
 	}
 	this.uStates = uStates;
 	})();

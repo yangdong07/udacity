@@ -1,3 +1,7 @@
+h2 {
+  text-align: center;
+}
+
 .state {
   fill: none;
   stroke: #a9a9a9;
@@ -8,14 +12,10 @@
   fill-opacity: 0.5;
 }
 
-
-/* #legend-svg {
-  vertical-align: top;
-} */
-
 #container {
   margin-left: 150px;
 }
+
 
 #container.h2 {
   max-width: 960px;
@@ -82,7 +82,3 @@ div.years_buttons button{
 #tooltip tr td:nth-child(1) {
   width: 50px;
 }
-
-/* #tooltip tr td:nth-child(2) {
-  text-align: center;
-} */

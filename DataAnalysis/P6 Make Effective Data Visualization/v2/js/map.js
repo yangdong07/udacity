@@ -30,6 +30,7 @@ function drawMap(data) {
     .rollup(statistic)
     .entries(data);
 
+  // 数据按年分组
   var year_nested = d3.nest()
     .key(function(d) {
       return d['date'].getUTCFullYear();
@@ -60,66 +61,26 @@ function drawMap(data) {
     statisticData[d.key] = yearData;
   });
 
-  // var colors = ['blue', 'beige', 'red'];
-  // var colors = ['#ffffd9', "#41b6c4", "#081d58"];
-  var colors = ["#f7fcf0", "#7bccc4", "#084081"];
-  // var colors = ["#edf8b1", "#7fcdbb", "#2c7fb8"];
-  // var colors = ["#f0f9e8", "#7bccc4", "#0868ac"];
-
   var max_amount = d3.max(amounts);
   var median_amount = d3.median(amounts);
   var min_amount = d3.min(amounts);
-  var color_scale = d3.scale.log()
-    .base(10)
-    .domain([min_amount, median_amount, max_amount])
-    // .domain([min_amount, max_amount])
-    .range(colors);
-  // .range(['white', 'blue', 'magenta']);
-  // .range(['#f7fbff', "#6baed6", "#08306b"]);
-  // .range(['#ffffd9', "#081d58"]);
-  // .domain([min_amount, median_amount, max_amount])
-  // .range(['blue', 'beige', 'red']);
+  var color_scale = d3.scale.linear()
+    .domain([min_amount, max_amount])
+    .range(['white', 'blue']);
 
   // debugger;
 
-  // nested.forEach(function(d) {
-  //   var count = d.values.count,
-  //     amount = d.values.LoanAmount;
-  //   sampleData[d.key] =
-  //     count: count,
-  //     amount: (amount / 1000000).toFixed(2),
-  //     avg: Math.round(amount / count),
-  //     color: d3.interpolate("#ffffcc", "#800026")(count / 10000)
-  //   };
-  // });
-
-  // debugger;
-
-  function tooltipHtml(n, d) { /* function to create html content string in tooltip div. */
-    if (d) {
-      return "<h4>" + n + "</h4><table>" +
-        "<tr><td>Amount</td><td>$" + d.amount.toFixed(2) + "m</td></tr>" +
-        "<tr><td>Count</td><td>" + (d.count) + "</td></tr>" +
-        "<tr><td>Average</td><td>$" + (d.avg) + "</td></tr>" +
-        "</table>";
-    } else {
-      return "<h4>" + n + "</h4><table>";
-    }
-  }
-
-  /* draw states on id #statesvg */
-  // uStates.draw("#main-svg", statisticData['2013'], color_scale, tooltipHtml);
-
+  // 根据年份绘制地图
   function update(year) {
     d3.select("#title").text("Loan Amount Distribution in " + year);
-    uStates.draw("#main-svg", statisticData[year], color_scale, tooltipHtml);
+    uStates.draw("#main-svg", statisticData[year], color_scale);
     d3.select(self.frameElement).style("height", "600px");
   }
 
   // debugger;
-
   update(2005);
 
+  // 设置定时器，定时出发更新年份； 结束后插入button组
   var years = d3.range(2005, 2015);
   var year_idx = 1;
   var year_interval = setInterval(function() {
@@ -157,10 +118,9 @@ function drawMap(data) {
     }
   }, 1500);
 
-
   // debugger;
 
-  // add the legend now
+  // 绘制 legend
   var legendFullHeight = 400;
   var legendFullWidth = 130;
   var legendMargin = {
@@ -192,8 +152,7 @@ function drawMap(data) {
     .attr('y2', '0%')
     .attr('spreadMethod', 'pad');
 
-  // '#f7fbff', "#6baed6", "#08306b"]);
-  var colourPct = d3.zip(["0%", "50%", "100%"], colors);
+  var colourPct = d3.zip(["0%", "100%"], ['white', 'blue']);
 
   colourPct.forEach(function(d) {
     gradient.append('stop')
@@ -210,16 +169,15 @@ function drawMap(data) {
     .style('fill', 'url(#gradient)');
 
   // create a scale and axis for the legend
-  var legendScale = d3.scale.log()
-    .base(Math.E)
-    .domain([min_amount, median_amount, max_amount])
-    .range([legendHeight, legendHeight / 2, 0]);
+  var legendScale = d3.scale.linear()
+    .domain([min_amount, max_amount])
+    .range([legendHeight, 0]);
 
   var legendAxis = d3.svg.axis()
     .scale(legendScale)
     .orient("right")
     // .tickValues(d3.range(0, 100, 10))
-    .tickValues([min_amount, median_amount, max_amount])
+    .tickValues([min_amount, (max_amount + min_amount) / 2, max_amount])
     .tickFormat(function(d) {
       return "$" + Math.round(d) + " million";
     });
