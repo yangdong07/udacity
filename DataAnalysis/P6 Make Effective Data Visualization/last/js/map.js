@@ -12,6 +12,8 @@ function drawMap(data) {
     // d.state = d.BorrowerState;
   });
 
+  debugger;
+
   function statistic(leaves) {
     return {
       'count': d3.sum(leaves, function(d) {
