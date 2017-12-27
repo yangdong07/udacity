@@ -1,0 +1,36 @@
+.state {
+  fill: none;
+  stroke: #a9a9a9;
+  stroke-width: 1;
+}
+
+.state:hover {
+  fill-opacity: 0.5;
+}
+
+h2 {
+  text-align: center;
+}
+
+#container {
+  margin-left: 150px;
+}
+
+#container.h2 {
+  max-width: 960px;
+}
+
+div.years_buttons {
+  position: fixed;
+  top: 200px;
+  left: 70px;
+  width: 40px;
+}
+
+div.years_buttons button{
+  background-color: rgb(251, 201, 127);
+  padding: 3px;
+  margin: 7px;
+  width: 40px;
+  font-size: 12px;
+}
